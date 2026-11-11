@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>שחמט עם רגלון</title>
+<meta name="description" content="לומדים שחמט צעד אחר צעד: שיעורים מונפשים בעברית ואתגרים קטנים לילדים בני 5–7.">
+<meta name="theme-color" content="#8fd3ff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="שחמט רגלון">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preload" href="fonts/varela-round-hebrew-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/secular-one-hebrew-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/shell.css">
+</head>
+<body>
+
+<!-- ============ WHO IS PLAYING ============ -->
+<section class="screen" id="who" hidden>
+  <div class="hero">
+    <svg class="raglon heroRag" id="heroRag" viewBox="0 0 100 114" aria-hidden="true"></svg>
+    <h1 class="logo">שחמט עם רגלון</h1>
+    <p class="tag">מי משחק היום?</p>
+  </div>
+  <div class="kids" id="kids"></div>
+  <div class="whoFoot">
+    <button class="install" id="installBanner" hidden>📲 הוספת המשחק למסך הבית</button>
+    <button class="link" id="gearWho">⚙ אזור ההורים</button>
+  </div>
+</section>
+
+<!-- ============ MAP ============ -->
+<section class="screen" id="map" hidden>
+  <div class="top">
+    <button class="kidChip" id="kidBtn" aria-label="החלפת ילד"><svg class="raglon" id="kidAv" viewBox="0 0 100 114" aria-hidden="true"></svg><span id="kidName"></span></button>
+    <div class="row" style="align-items:center">
+      <span class="pill" id="total">⭐ 0</span>
+      <button class="ic" id="voiceBtn" aria-label="קריינות">🔊</button>
+      <button class="ic" id="gearMap" aria-label="אזור ההורים">⚙</button>
+    </div>
+  </div>
+  <div class="path" id="units"></div>
+</section>
+
+<!-- ============ LESSON ============ -->
+<section class="screen play" id="lesson" hidden>
+  <div class="top">
+    <button class="ic" id="lBack" aria-label="חזרה למפה">✕</button>
+    <div style="text-align:center"><div id="lTitle" class="ttl"></div><div class="steps" id="lSteps"></div></div>
+    <button class="ic" id="lVoice" aria-label="קריינות">🔊</button>
+  </div>
+  <div class="stage" id="lStage"><div class="board" id="lBoard"></div></div>
+  <div class="coach"><svg class="raglon" id="lRag" viewBox="0 0 100 114"></svg><div class="bubble" id="lText" aria-live="polite"></div></div>
+  <div class="ctrl">
+    <button id="lPrev" aria-label="שוב">⏮ שוב</button>
+    <button id="lPlay" aria-label="עצירה">⏸</button>
+    <button id="lNext" aria-label="הבא">הבא ⏭</button>
+    <button class="big" id="lGo" hidden>לאתגר! ⭐</button>
+  </div>
+</section>
+
+<!-- ============ CHALLENGE ============ -->
+<section class="screen play" id="chal" hidden>
+  <div class="top">
+    <button class="ic" id="cBack" aria-label="חזרה למפה">✕</button>
+    <div style="text-align:center"><div id="cTitle" class="ttl"></div><div class="sub" id="cSub"></div></div>
+    <span class="pill" id="cMoves"></span>
+  </div>
+  <div class="stage" id="cStage"><div class="board" id="cBoard"></div></div>
+  <div class="coach"><svg class="raglon" id="cRag" viewBox="0 0 100 114"></svg><div class="bubble" id="cText" aria-live="polite"></div></div>
+  <div class="ctrl">
+    <button id="cUndo">↩ אחורה</button>
+    <button id="cReset">⟲ מחדש</button>
+    <button id="cHint">💡 רמז</button>
+  </div>
+</section>
+
+<!-- ============ OVERLAYS ============ -->
+<div class="overlay" id="win" hidden><div class="card">
+  <svg class="raglon cheer" id="wRag" viewBox="0 0 100 114" style="width:110px;height:126px"></svg>
+  <h2 id="wT">כל הכבוד!</h2>
+  <div class="bigstars" id="wStars"></div>
+  <p id="wP"></p>
+  <div class="row"><button id="wAgain">שוב</button><button class="big" id="wNext">הבא ⭐</button></div>
+</div></div>
+
+<div class="overlay" id="addKid" hidden><form class="card" id="kidForm" autocomplete="off">
+  <svg class="raglon" id="newAv" viewBox="0 0 100 114" style="width:96px;height:110px" aria-hidden="true"></svg>
+  <h2 id="kfTitle">ילד חדש</h2>
+  <label class="fld"><span>איך קוראים לך?</span><input id="kidNameIn" maxlength="12" required placeholder="שם"></label>
+  <div class="sw" id="swatches" role="radiogroup" aria-label="צבע הצעיף"></div>
+  <div class="row"><button type="button" id="kfCancel">ביטול</button><button class="big" type="submit">שמירה</button></div>
+</form></div>
+
+<div class="overlay" id="gate" hidden><div class="card">
+  <h2>אזור ההורים</h2>
+  <p>כדי להיכנס, לחצו והחזיקו את הכפתור עד שהעיגול מתמלא.</p>
+  <button class="hold" id="holdBtn" aria-label="לחצו והחזיקו"><span class="ringp" id="holdRing"></span><span class="lock">🔒</span></button>
+  <button id="gateCancel">ביטול</button>
+</div></div>
+
+<div class="overlay" id="parent" hidden><div class="card wide">
+  <h2>אזור ההורים</h2>
+  <div class="pbody" id="pBody"></div>
+  <button class="big" id="pClose">סגירה</button>
+</div></div>
+
+<div class="overlay" id="iosHelp" hidden><div class="card">
+  <h2>הוספה למסך הבית</h2>
+  <ol class="steps2">
+    <li>פתחו את המשחק ב־<b>Safari</b>.</li>
+    <li>לחצו על כפתור השיתוף <svg viewBox="0 0 24 24" class="shareIc" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> בתחתית המסך.</li>
+    <li>גללו ובחרו <b>"הוספה למסך הבית"</b>.</li>
+    <li>לחצו <b>"הוספה"</b>. האייקון של רגלון יופיע במסך הבית.</li>
+  </ol>
+  <button class="big" id="iosClose">הבנתי</button>
+</div></div>
+
+<div class="toast" id="toast" hidden><span id="toastT"></span><button id="toastB"></button></div>
+
+<canvas id="scene"></canvas><canvas id="fx"></canvas>
+
+<script src="js/engine.js"></script>
+<script src="js/content.js"></script>
+<script src="js/app.js"></script>
+<script src="js/shell.js"></script>
+</body>
+</html>

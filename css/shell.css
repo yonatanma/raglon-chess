@@ -1,0 +1,93 @@
+/* ===== self-hosted fonts (work offline) ===== */
+@font-face{font-family:"Varela Round";font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/varela-round-hebrew-400-normal.woff2) format("woff2");unicode-range:U+0307-0308,U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F}
+@font-face{font-family:"Varela Round";font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/varela-round-latin-400-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Secular One";font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/secular-one-hebrew-400-normal.woff2) format("woff2");unicode-range:U+0307-0308,U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F}
+@font-face{font-family:"Secular One";font-style:normal;font-weight:400;font-display:swap;src:url(../fonts/secular-one-latin-400-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
+/* ===== app feel on phones ===== */
+html,body{height:100%;overscroll-behavior:none}
+body{-webkit-touch-callout:none;-webkit-text-size-adjust:100%;touch-action:manipulation}
+input{font-family:var(--body);-webkit-user-select:text;user-select:text}
+.screen{padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px))}
+.ttl{font-family:var(--display);font-size:1.3rem;line-height:1.15}
+
+/* ===== who is playing ===== */
+#who{justify-content:flex-start;gap:14px;overflow-y:auto}
+.hero{display:flex;flex-direction:column;align-items:center;gap:2px;padding-top:min(6vh,40px)}
+.heroRag{width:104px;height:118px}
+.logo{font-family:var(--display);font-weight:400;font-size:clamp(2rem,9vw,2.8rem);margin:0;line-height:1;color:var(--ink);text-shadow:0 3px 0 rgba(255,255,255,.7)}
+.tag{margin:6px 0 0;font-size:1.3rem;color:var(--ink)}
+.kids{width:100%;max-width:560px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;padding:6px 2px}
+.kidCard{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 10px 12px;border-radius:26px;background:#fff;box-shadow:0 6px 0 #9fbbd6;border-top:6px solid var(--kc,#ffc93c)}
+.kidCard svg{width:76px;height:86px}
+.kidCard b{font-size:1.35rem;font-family:var(--display);font-weight:400}
+.kidCard .ks{font-variant-numeric:tabular-nums;font-size:1rem}
+.kidCard .kl{font-size:.8rem;color:var(--muted);font-weight:400}
+.kidCard.add{border-top-color:transparent;background:rgba(255,255,255,.65);justify-content:center;min-height:170px;border:3px dashed #9fbbd6;box-shadow:none}
+.kidCard .plus{font-size:3rem;line-height:1;color:#6b8db0}
+.whoFoot{display:flex;flex-direction:column;align-items:center;gap:10px;padding-bottom:12px;margin-top:auto}
+.install{background:var(--sun);color:var(--sun-ink);box-shadow:0 4px 0 #c99400}
+.link{background:transparent;box-shadow:none;color:var(--ink);text-decoration:underline;text-underline-offset:4px;font-weight:400}
+
+/* ===== map header kid chip ===== */
+.kidChip{display:flex;align-items:center;gap:6px;padding:4px 14px 4px 8px;border-radius:999px;min-height:48px}
+.kidChip svg{width:36px;height:41px}
+.kidChip span{font-family:var(--display);font-size:1.2rem;font-weight:400;max-width:8.5em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ===== forms & overlays ===== */
+.card.wide{max-width:520px;max-height:min(86vh,760px);overflow:hidden}
+.fld{display:flex;flex-direction:column;gap:6px;width:100%;text-align:start}
+.fld span{font-size:1.05rem}
+.fld input{font-size:1.4rem;padding:12px 16px;border-radius:16px;border:3px solid #c9dcf0;outline:none;text-align:center;color:var(--ink);background:#f6fbff}
+.fld input:focus{border-color:var(--hint)}
+.sw{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.sw button{width:42px;height:42px;border-radius:50%;padding:0;background:var(--c);box-shadow:0 3px 0 rgba(0,0,0,.18)}
+.sw button[aria-checked="true"]{outline:4px solid var(--ink);outline-offset:3px}
+.hold{width:116px;height:116px;border-radius:50%;padding:0;position:relative;display:grid;place-items:center;background:#eef5ff;touch-action:none}
+.hold .ringp{position:absolute;inset:0;border-radius:50%;background:conic-gradient(var(--good) calc(var(--p,0)*360deg),transparent 0);
+  -webkit-mask:radial-gradient(circle,transparent 52px,#000 53px);mask:radial-gradient(circle,transparent 52px,#000 53px)}
+.hold .lock{font-size:2.4rem}
+.pbody{overflow-y:auto;width:100%;text-align:start;display:flex;flex-direction:column;gap:10px;padding:2px 4px}
+.pbody h3{margin:8px 0 0;font-family:var(--display);font-weight:400;font-size:1.2rem}
+.pbody small{display:block;color:var(--muted);font-size:.85rem;margin-top:2px}
+.prow{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#f3f8ff;border-radius:16px;padding:10px 14px}
+.switch{width:58px;height:34px;border-radius:999px;padding:0;background:#c9d3e0;position:relative;box-shadow:none;flex:none}
+.switch i{position:absolute;top:4px;inset-inline-start:4px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 2px 3px rgba(0,0,0,.25);transition:inset-inline-start .2s}
+.switch[aria-checked="true"]{background:var(--good)}
+.switch[aria-checked="true"] i{inset-inline-start:28px}
+.pkid{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center;background:#f3f8ff;border-radius:16px;padding:10px 12px;border-inline-start:6px solid var(--kc)}
+.pkid svg{width:44px;height:50px;grid-row:span 2}
+.pk-i b{font-family:var(--display);font-weight:400;font-size:1.15rem}
+.pk-a{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}
+.pk-a button{font-size:.85rem;padding:8px 10px;border-radius:12px;box-shadow:0 2px 0 #b7cde4}
+.pk-a button.warn{background:var(--bad);color:#fff;box-shadow:0 2px 0 #b02a4c}
+.okline{color:var(--good);margin:0}
+.ver{color:var(--muted);font-size:.8rem;text-align:center;margin:6px 0 0}
+.steps2{text-align:start;margin:0;padding-inline-start:1.3em;display:flex;flex-direction:column;gap:10px;font-size:1.05rem;line-height:1.45}
+.shareIc{width:22px;height:22px;vertical-align:-5px;color:#2f7cf6}
+.toast{position:fixed;z-index:45;bottom:max(16px,env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;gap:12px;align-items:center;
+  background:var(--ink);color:#fff;border-radius:18px;padding:10px 12px 10px 18px;box-shadow:0 10px 30px rgba(0,0,0,.3);max-width:calc(100% - 32px);font-size:1rem}
+.toast button{background:var(--sun);color:var(--sun-ink);box-shadow:none;padding:8px 14px}
+
+/* ===== landscape phones & tablets: board on one side, Raglon on the other ===== */
+@media (orientation:landscape) and (max-height:600px){
+  .screen.play{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,40%);grid-template-rows:auto 1fr auto;column-gap:16px;align-items:center;padding-block:6px}
+  .screen.play .top{grid-column:1/-1;max-width:none}
+  .screen.play .stage{grid-column:1;grid-row:2/4;height:100%}
+  .screen.play .coach{grid-column:2;grid-row:2;flex-direction:column;align-items:center;min-height:0}
+  .screen.play .bubble{font-size:1.05rem;width:100%;box-sizing:border-box}
+  .screen.play .ctrl{grid-column:2;grid-row:3;padding-top:0}
+  .screen.play .raglon{width:70px;height:80px}
+  .hero{padding-top:4px}.heroRag{width:70px;height:80px}
+}
+@media (min-width:900px) and (min-height:700px){.bubble{font-size:1.35rem}.raglon#lRag,.raglon#cRag{width:110px;height:126px}}
+
+/* ===== small phones: keep the map header on one line ===== */
+@media (max-width:400px){
+  #map .top{gap:6px}#map .top .row{gap:6px;flex-wrap:nowrap}
+  #map .top .ic{width:42px;height:42px;font-size:1.1rem}
+  #map .pill{padding:5px 10px;font-size:.88rem}
+  .kidChip{padding:3px 10px 3px 6px;min-height:44px}.kidChip svg{width:30px;height:34px}.kidChip span{max-width:5.2em;font-size:1.05rem}
+}
+/* ===== tablets: everything a little bigger ===== */
+@media (min-width:768px) and (min-height:900px){html{font-size:18px}#map .path,.kids{max-width:640px}}
