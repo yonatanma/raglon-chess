@@ -45,13 +45,17 @@ fs.mkdirSync(AUD,{recursive:true});
 const prev=fs.existsSync(AUD+'voice.json')?JSON.parse(fs.readFileSync(AUD+'voice.json','utf8')):{};
 const settings=PROVIDER==='azure'?{provider:'azure',voice:VOICE,rate:RATE,pitch:PITCH,lexicon:vkey(JSON.stringify(lex))}:{provider:'elevenlabs',voice:VOICE,model:'eleven_v3',tag:TAG,lexicon:vkey(JSON.stringify(lex))};
 const redo=process.env.FORCE==='true'||JSON.stringify(prev.settings)!==JSON.stringify(settings);
-const files={};let made=0,chars=0;
-for(const t of lines){const k=vkey(t),f=AUD+k+'.mp3';files[k]=t;
-  if(!redo&&fs.existsSync(f))continue;
-  if(MOCK){execFileSync('ffmpeg',['-loglevel','error','-y','-f','lavfi','-i',`sine=frequency=520:duration=${Math.min(6,.6+t.length*.045).toFixed(2)}`,'-ac','1','-b:a','32k',f]);}
+const files={},todo=[];let made=0,chars=0;
+for(const t of lines){const k=vkey(t),f=AUD+k+'.mp3';files[k]=t;if(redo||!fs.existsSync(f))todo.push([t,f])}
+console.log(`${todo.length} of ${lines.size} sentences need recording`);
+// three at a time: much faster, still within the free plan's concurrency limit
+const WORKERS=MOCK?1:3;let next=0;
+async function worker(){while(next<todo.length){const[t,f]=todo[next++];
+  if(MOCK)execFileSync('ffmpeg',['-loglevel','error','-y','-f','lavfi','-i',`sine=frequency=520:duration=${Math.min(6,.6+t.length*.045).toFixed(2)}`,'-ac','1','-b:a','32k',f]);
   else if(PROVIDER==='azure')await azure(t,f);
   else await eleven(t,f);
-  made++;chars+=t.length;}
+  made++;chars+=t.length;if(made%10===0||made===todo.length)console.log(`recorded ${made}/${todo.length}`)}}
+await Promise.all(Array.from({length:WORKERS},worker));
 async function retry(fn){for(let attempt=0;attempt<5;attempt++){const r=await fn();if(r.ok)return r;
     if(r.status===429||r.status>=500){await new Promise(z=>setTimeout(z,2500*(attempt+1)));continue}
     fail(`The voice service answered ${r.status}: ${(await r.text()).slice(0,400)}`)}fail('The voice service kept refusing. Try again later.')}
