@@ -1,5 +1,5 @@
 /* ===== app shell: kid profiles, parent area, install, offline, wake lock ===== */
-const APP_VERSION='1.2.0';
+const APP_VERSION='1.2.1';
 const KID_COLORS=['#ff6f91','#4d96ff','#33b27a','#ffb703','#9b5de5','#ff8c42'];
 let KIDS=store.get('rc-kids',[]),curKid=store.get('rc-cur',null);
 const kidOf=id=>KIDS.find(k=>k.id===id);
@@ -78,6 +78,7 @@ function renderParent(){
   $('pBody').innerHTML=`<h3>הגדרות</h3>${sw('voice',voiceOn,'קריינות',voiceHint)}${sw('sound',soundOn,'צלילים')}${sw('haptic',hapticOn,'רטט',navigator.vibrate?'':'במכשיר הזה אין רטט')}
     <h3>הילדים</h3>${kids}${KIDS.length<6?'<button data-act="add">+ הוספת ילד</button>':''}
     <h3>התקנה</h3>${inst}
+    <h3>עדכונים</h3><div class="prow"><div><b>גרסה ${APP_VERSION}</b><small id="updMsg">${swWaiting?'גרסה חדשה מוכנה להתקנה':'המשחק בודק עדכונים בכל פתיחה'}</small></div><button data-act="upd">${swWaiting?'עדכון עכשיו':'בדיקה'}</button></div>
     <p class="ver">גרסה ${APP_VERSION}${offlineReady?' · מוכן לעבודה בלי אינטרנט':''}${window.VOICE_META&&VOICE_META.provider==='elevenlabs'?' · הקריינות נוצרה עם ElevenLabs':''}</p>`;
 }
 function openParent(){confirmKey=null;renderParent();$('parent').hidden=false}
@@ -91,6 +92,10 @@ $('pBody').onclick=e=>{const b=e.target.closest('button');if(!b)return;sfx.tap()
   if(act==='add'){openKidForm();return}
   if(act==='edit'){openKidForm(id);return}
   if(act==='install'){doInstall();return}
+  if(act==='upd'){if(swWaiting){swWaiting.postMessage('skip');return}
+    $('updMsg').textContent='בודק...';checkUpdate(true).then(found=>{if(!found){$('updMsg').textContent=navigator.onLine?'יש לך את הגרסה האחרונה':'אין אינטרנט כרגע';return}
+      $('updMsg').textContent='מוריד את הגרסה החדשה...';const w=swReg.installing||swReg.waiting;if(swReg.waiting){swWaiting=swReg.waiting;renderParent();return}
+      w&&w.addEventListener('statechange',()=>{if(w.state==='installed'){swWaiting=w;renderParent()}})});return}
   if(act==='all'){const p=store.get('rc-prog-'+id,{lesson:{},stars:{}});p.all=!p.all;store.set('rc-prog-'+id,p);if(id===curKid)prog.all=p.all;renderParent();return}
   if(act==='reset'||act==='del'){if(confirmKey!==act+id){confirmKey=act+id;renderParent();return}confirmKey=null;
     try{localStorage.removeItem('rc-prog-'+id)}catch(e){}
@@ -112,7 +117,12 @@ $('installBanner').onclick=()=>{sfx.tap();doInstall()};
 $('iosClose').onclick=()=>{$('iosHelp').hidden=true};
 
 /* ---------- offline + updates ---------- */
-let offlineReady=false,swWaiting=null,reloading=false;
+let offlineReady=false,swWaiting=null,reloading=false,swReg=null,lastCheck=0;
+// look for a new version when the app opens and every time it comes back to the screen
+function checkUpdate(force){if(!swReg||!navigator.onLine)return Promise.resolve(false);if(!force&&Date.now()-lastCheck<20000)return Promise.resolve(false);lastCheck=Date.now();
+  return swReg.update().then(()=>!!(swReg.installing||swReg.waiting)).catch(()=>false)}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
+addEventListener('online',()=>checkUpdate(true));
 function toast(text,btn,fn){$('toastT').textContent=text;$('toastB').textContent=btn;$('toastB').onclick=fn;$('toast').hidden=false}
 if('serviceWorker' in navigator&&location.protocol.startsWith('http')){
   navigator.serviceWorker.register('sw.js').then(reg=>{
@@ -120,7 +130,8 @@ if('serviceWorker' in navigator&&location.protocol.startsWith('http')){
     const watch=w=>{w.addEventListener('statechange',()=>{if(w.state==='installed'){if(navigator.serviceWorker.controller){swWaiting=w;toast('יש גרסה חדשה של המשחק','עדכון',()=>w.postMessage('skip'))}else offlineReady=true}})};
     if(reg.waiting&&navigator.serviceWorker.controller){swWaiting=reg.waiting;toast('יש גרסה חדשה של המשחק','עדכון',()=>reg.waiting.postMessage('skip'))}
     reg.addEventListener('updatefound',()=>watch(reg.installing));
-    setInterval(()=>reg.update().catch(()=>{}),60*60*1000);
+    swReg=reg;checkUpdate();
+    setInterval(checkUpdate,30*60*1000);
   }).catch(()=>{});
   navigator.serviceWorker.addEventListener('controllerchange',()=>{if(reloading)return;reloading=true;location.reload()});
 }
