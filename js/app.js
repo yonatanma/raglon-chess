@@ -67,17 +67,32 @@ let voiceOn=store.get('rc-voice',true),heVoice=null;
 function pickVoice(){try{const v=speechSynthesis.getVoices();heVoice=v.find(x=>/^(he|iw)/i.test(x.lang))||null}catch(e){}}
 try{pickVoice();speechSynthesis.onvoiceschanged=pickVoice}catch(e){}
 let speakTok=0;
+/* recorded narration: audio/<key>.mp3, key = FNV-1a of the sentence (same function as scripts/gen-voice.mjs) */
+function vkey(t){let x=0x811c9dc5;const s=t.normalize('NFC').trim();for(let i=0;i<s.length;i++){x^=s.charCodeAt(i);x=Math.imul(x,0x01000193)>>>0}return x.toString(16).padStart(8,'0')}
+let VOICE=null;const vbufs=new Map();let vsrc=null;
+fetch('audio/voice.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.files)VOICE=new Set(Object.keys(j.files))}).catch(()=>{});
+function vbuf(k){if(vbufs.has(k))return vbufs.get(k);const a=ac();if(!a)return Promise.reject();
+  const p=fetch('audio/'+k+'.mp3').then(r=>{if(!r.ok)throw new Error('missing');return r.arrayBuffer()}).then(b=>new Promise((res,rej)=>a.decodeAudioData(b,res,rej)));
+  vbufs.set(k,p);p.catch(()=>vbufs.delete(k));return p}
+function preVoice(list){if(!VOICE||!voiceOn)return;list.forEach(t=>{const k=vkey(t);if(VOICE.has(k))vbuf(k).catch(()=>{})})}
+const hasRec=t=>!!(VOICE&&VOICE.has(vkey(t)));
 function speak(text,rag){ // resolves when done (or after an estimated reading time)
   const tok=++speakTok,est=(1100+text.length*70);
   return new Promise(res=>{let fin=false;const end=()=>{if(fin)return;fin=true;rag&&rag.classList.remove('talk');res()};
     rag&&rag.classList.add('talk');
-    if(voiceOn&&heVoice&&window.speechSynthesis&&FAST()===1){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='he-IL';if(heVoice)u.voice=heVoice;u.rate=.92;u.pitch=1.15;
-        const t0=Date.now();u.onend=()=>{if(tok!==speakTok)return end();if(Date.now()-t0<400)setTimeout(end,Math.max(0,est-400));else end()};u.onerror=()=>setTimeout(end,est);
-        speechSynthesis.speak(u);setTimeout(end,est*2.6);}catch(e){setTimeout(end,est)}}
-    else setTimeout(end,est/FAST());
-    if(rag)setTimeout(()=>{if(!voiceOn||!heVoice)rag.classList.remove('talk')},Math.min(est,2600)/FAST());
+    const device=()=>{
+      if(voiceOn&&heVoice&&window.speechSynthesis&&FAST()===1){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='he-IL';u.voice=heVoice;u.rate=.92;u.pitch=1.15;
+          const t0=Date.now();u.onend=()=>{if(tok!==speakTok)return end();if(Date.now()-t0<400)setTimeout(end,Math.max(0,est-400));else end()};u.onerror=()=>setTimeout(end,est);
+          speechSynthesis.speak(u);setTimeout(end,est*2.6);}catch(e){setTimeout(end,est)}}
+      else{setTimeout(end,est/FAST());if(rag)setTimeout(()=>rag.classList.remove('talk'),Math.min(est,2600)/FAST())}};
+    if(voiceOn&&FAST()===1&&hasRec(text)){
+      try{if(vsrc){vsrc.onended=null;vsrc.stop()}}catch(e){}vsrc=null;try{speechSynthesis.cancel()}catch(e){}
+      vbuf(vkey(text)).then(buf=>{if(tok!==speakTok)return end();const a=ac(),s=a.createBufferSource();s.buffer=buf;s.connect(a.destination);
+          s.onended=()=>{if(vsrc===s)vsrc=null;end()};vsrc=s;s.start();window.__voicePlays=(window.__voicePlays||0)+1;setTimeout(end,buf.duration*1000+1500)})
+        .catch(device)}
+    else device();
   })}
-function hush(){speakTok++;try{speechSynthesis.cancel()}catch(e){}document.querySelectorAll('.raglon').forEach(r=>r.classList.remove('talk'))}
+function hush(){speakTok++;try{speechSynthesis.cancel()}catch(e){}try{if(vsrc){vsrc.onended=null;vsrc.stop()}}catch(e){}vsrc=null;document.querySelectorAll('.raglon').forEach(r=>r.classList.remove('talk'))}
 function setVoiceBtns(){['voiceBtn','lVoice'].forEach(id=>{$(id).textContent=voiceOn?'🔊':'🔇';$(id).setAttribute('aria-label',voiceOn?'כיבוי קריינות':'הפעלת קריינות')})}
 ['voiceBtn','lVoice'].forEach(id=>$(id).onclick=()=>{voiceOn=!voiceOn;store.set('rc-voice',voiceOn);if(!voiceOn)hush();setVoiceBtns()});
 setVoiceBtns();
@@ -314,7 +329,7 @@ let LS=null;
 function openLesson(ui){
   const u=UNITS[ui];showScreen('lesson',u.id);$('lTitle').textContent='שיעור: '+u.name;
   $('lSteps').innerHTML=u.lesson.map(()=>'<i></i>').join('');$('lGo').hidden=true;['lPrev','lPlay','lNext'].forEach(id=>$(id).hidden=false);$('lPrev').textContent='⏮ שוב';$('lPlay').textContent='⏸';
-  LS={ui,u,k:0,playing:true,run:0,cfg:{n:8}};LB.build({n:8});runStep(0);
+  LS={ui,u,k:0,playing:true,run:0,cfg:{n:8}};preVoice(u.lesson.map(s=>s.say));LB.build({n:8});runStep(0);
 }
 function cfgAt(k){let c={n:8};for(let i=0;i<=k;i++)if(LS.u.lesson[i].board)c=LS.u.lesson[i].board;return c}
 async function runStep(k){
@@ -365,7 +380,7 @@ let C=null;
 function openChal(ui,k){
   const u=UNITS[ui],ch=u.ch[k];showScreen('chal',u.id);hush();
   $('cTitle').textContent=u.name+' · אתגר '+(k+1);$('cSub').textContent=`${k+1} מתוך ${u.ch.length}`;
-  C={ui,k,u,ch,hist:[],moves:0,hints:0,mist:0,busy:false,sel:0};
+  C={ui,k,u,ch,hist:[],moves:0,hints:0,mist:0,busy:false,sel:0};preVoice([ch.say,...VOICE_LINES.praise,VOICE_LINES.hint]);
   if(ch.type==='tap'){C.ans=new Set(ch.ans.map(a=>sq(a,ch.n)));C.found=new Set();CB.build({n:ch.n,mark:ch.mark})}
   else{C.G=setup(ch);C.S=cloneS(C.G.start);C.par=solve(C.G,C.S).par;CB.build(ch);C.sel=0}
   syncChal();$('cText').textContent=ch.say;speak(ch.say,$('cRag'));
@@ -388,15 +403,14 @@ async function tryMove(k,j){
     const from=it.i;await CB.slide(it,j);const g=CB.items.find(x=>x.kind==='foe'&&!x.dead&&x.i===C.G.foeSq[r.by]);
     if(g){const[gx,gy]=CB.xy(g.i),[tx,ty]=CB.xy(j);g.el.style.setProperty('--lx',(tx-gx)*.6+'px');g.el.style.setProperty('--ly',(ty-gy)*.6+'px');g.el.classList.remove('lunge');void g.el.offsetWidth;g.el.classList.add('lunge')}
     it.el.classList.add('shake');sfx.bad();C.mist++;mood($('cRag'),'oops',1900);
-    const names={P:'הרגלי',R:'הצריח',B:'הרץ',N:'הפרש',Q:'המלכה',K:'המלך'};
-    const t=`אוי! ${names[C.G.foeT[r.by]]} השחור שומר על המשבצת הזאת. נסו משבצת בטוחה`;$('cText').textContent=t;speak(t,$('cRag'));
+    const t=VOICE_LINES.danger[C.G.foeT[r.by]];$('cText').textContent=t;speak(t,$('cRag'));
     await sleep(650);it.el.classList.remove('shake');await CB.slide(it,from);C.busy=false;syncChal();return true}
   C.hist.push({S:cloneS(C.S),snap:snapItems()});
   const victim=r.cap>=0?CB.items.find(x=>x.kind==='foe'&&!x.dead&&x.i===j):null;
   await CB.slide(it,j);
   if(victim){CB.remove(victim);sfx.cap();CB.hop(it);mood($('cRag'),'happy',1200)}
   if(r.star>=0){const st=CB.items.find(x=>x.kind==='star'&&!x.dead&&x.i===j);if(st){CB.remove(st,'got');sfx.star();mood($('cRag'),'happy',1100)}}
-  if(r.promo){CB.swap(it,pieceSVG('Q',false),'Q');sfx.promo();CB.celebrate(it);const t='הרגלי הפך למלכה!';$('cText').textContent=t;speak(t,$('cRag'))}
+  if(r.promo){CB.swap(it,pieceSVG('Q',false),'Q');sfx.promo();CB.celebrate(it);const t=VOICE_LINES.promo;$('cText').textContent=t;speak(t,$('cRag'))}
   C.S=r.s;C.moves++;C.busy=false;
   if(done(C.G,C.S)){syncChal();setTimeout(winChal,400);return true}
   syncChal();return true;
@@ -412,9 +426,9 @@ function undo(){if(!C||C.busy||!C.hist.length)return;const h=C.hist.pop();C.S=h.
   syncChal()}
 $('cUndo').onclick=undo;
 $('cReset').onclick=()=>{if(!C||C.busy)return;sfx.tap();openChal(C.ui,C.k)};
-$('cHint').onclick=()=>{if(!C||C.busy||C.ch.type==='tap')return;const r=solve(C.G,C.S);if(r.par<0){const t='מכאן כבר אי אפשר. לחצו על אחורה';$('cText').textContent=t;speak(t,$('cRag'));return}
+$('cHint').onclick=()=>{if(!C||C.busy||C.ch.type==='tap')return;const r=solve(C.G,C.S);if(r.par<0){const t=VOICE_LINES.stuck;$('cText').textContent=t;speak(t,$('cRag'));return}
   C.hints++;mood($('cRag'),'think',2200);const[k,j]=r.path[0];C.sel=k;syncChal();CB.hi([C.S.me[k].i],'y');CB.hi([j],'g');sfx.ok();
-  const t='נסו לזוז למשבצת הירוקה';$('cText').textContent=t;speak(t,$('cRag'))};
+  const t=VOICE_LINES.hint;$('cText').textContent=t;speak(t,$('cRag'))};
 $('cBack').onclick=()=>{hush();renderMap()};
 
 // input: tap piece / tap square / drag piece
@@ -447,7 +461,7 @@ function winChal(){
   else{st=C.moves<=C.par?3:C.moves<=C.par+2?2:1;if(C.hints)st=Math.min(st,2)}
   const key=C.u.id+':'+C.k;prog.stars[key]=Math.max(prog.stars[key]||0,st);saveProg();
   $('wStars').innerHTML=[0,1,2].map(i=>`<span class="${i<st?'':'off'}" style="animation-delay:${.15+i*.18}s">⭐</span>`).join('');
-  const praise=['כל הכבוד!','מדהים!','איזה יופי!','אלופים!'][Math.floor(Math.random()*4)];
+  const praise=VOICE_LINES.praise[Math.floor(Math.random()*VOICE_LINES.praise.length)];
   $('wT').textContent=praise;
   $('wP').textContent=C.ch.type==='tap'?(st===3?'בלי אף טעות!':'מצאתם את כולן!'):
     (C.moves<=C.par?`ב־${C.moves} מהלכים. הכי מעט שאפשר!`:`ב־${C.moves} מהלכים. אפשר גם ב־${C.par}. רוצים לנסות שוב?`);
