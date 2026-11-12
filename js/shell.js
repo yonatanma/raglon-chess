@@ -1,5 +1,5 @@
 /* ===== app shell: kid profiles, parent area, install, offline, wake lock ===== */
-const APP_VERSION='1.1.0';
+const APP_VERSION='1.2.0';
 const KID_COLORS=['#ff6f91','#4d96ff','#33b27a','#ffb703','#9b5de5','#ff8c42'];
 let KIDS=store.get('rc-kids',[]),curKid=store.get('rc-cur',null);
 const kidOf=id=>KIDS.find(k=>k.id===id);

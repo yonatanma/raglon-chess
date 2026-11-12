@@ -91,3 +91,11 @@ input{font-family:var(--body);-webkit-user-select:text;user-select:text}
 }
 /* ===== tablets: everything a little bigger ===== */
 @media (min-width:768px) and (min-height:900px){html{font-size:18px}#map .path,.kids{max-width:640px}}
+
+/* ===== check rings, value badges, nudges ===== */
+.kring{position:absolute;border-radius:50%;pointer-events:none;box-shadow:inset 0 0 0 4px rgba(239,71,111,.9),0 0 16px 4px rgba(239,71,111,.55);animation:kr 1s ease-in-out infinite}
+@keyframes kr{50%{box-shadow:inset 0 0 0 6px rgba(239,71,111,1),0 0 24px 8px rgba(239,71,111,.7)}}
+.vbadge{position:absolute;pointer-events:none;min-width:1.4em;padding:1px 5px;border-radius:999px;background:var(--sun);color:var(--sun-ink);font-weight:700;text-align:center;box-shadow:0 2px 0 #c99400;animation:dotin .35s cubic-bezier(.2,1.7,.4,1) backwards;font-variant-numeric:tabular-nums}
+button.pulse{animation:nudge 1s ease-in-out infinite;background:var(--sun);color:var(--sun-ink)}
+@keyframes nudge{50%{transform:scale(1.08)}}
+#wShow{background:#eef5ff}

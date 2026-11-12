@@ -98,7 +98,7 @@ function setVoiceBtns(){['voiceBtn','lVoice'].forEach(id=>{$(id).textContent=voi
 setVoiceBtns();
 
 /* =============== world: scenery + particles (one frame loop, pooled particles, cached static layers) =============== */
-const LAND={board:'גן המשבצות',rook:'טירת הצריח',bishop:'יער הרץ',queen:'ארמון המלכה',king:'הר המלך',knight:'חוות הפרש',pawn:'חוף הרגלים',capture:'ארץ הממתקים',guard:'לילה בממלכה'};
+const LAND={check:'שער השח',escape:'מבוך המלך',mate:'אולם הכתר',rookmate:'נמל הצריחים',values:'שוק האוצרות',board:'גן המשבצות',rook:'טירת הצריח',bishop:'יער הרץ',queen:'ארמון המלכה',king:'הר המלך',knight:'חוות הפרש',pawn:'חוף הרגלים',capture:'ארץ הממתקים',guard:'לילה בממלכה'};
 const THEMES={
   map:{sky:['#8fd3ff','#e4f5ff'],hills:['#a6dc7c','#78c45a'],props:'meadow',amb:'butterfly'},
   board:{sky:['#9dd8ff','#eaf8ff'],hills:['#a8dd7e','#7cc65b'],props:'flowers',amb:'butterfly'},
@@ -110,6 +110,11 @@ const THEMES={
   pawn:{sky:['#86d8ff','#e2f8ff'],hills:['#f7e1a4','#efcf80'],props:'beach',amb:'bubble'},
   capture:{sky:['#ffc4e4','#fff1d9'],hills:['#ffd9ad','#ffbd8f'],props:'candy',amb:'sparkle'},
   guard:{sky:['#1d2150','#463f7e'],hills:['#2d3b60','#1f2b48'],props:'nightcastle',amb:'firefly',night:1},
+  check:{sky:['#ffb48a','#ffe9cf'],hills:['#e3ad72','#cc8f57'],props:'castle',amb:'leaf'},
+  escape:{sky:['#a8e6cf','#effcf6'],hills:['#62ab6d','#418f57'],props:'forest',amb:'butterfly'},
+  mate:{sky:['#ffd97a','#fff8dc'],hills:['#f2c14e','#dfa62c'],props:'palace',amb:'sparkle'},
+  rookmate:{sky:['#7cc6ff','#e2f5ff'],hills:['#f6dfa0','#eccd7c'],props:'beach',amb:'bubble'},
+  values:{sky:['#d6bfff','#f7f1ff'],hills:['#c7a6f1','#a784de'],props:'candy',amb:'sparkle'},
 };
 function lcg(seed){let s=seed>>>0||1;return()=>((s=Math.imul(s,1664525)+1013904223>>>0)/4294967296)}
 function paintScene(c,w,h,T,thumb){
@@ -289,6 +294,13 @@ class Board{
     d.innerHTML=cap?'<div class="ring"></div>':'<div class="dot"></div>';this.marks.appendChild(d)}
   x(i){const[x,y]=this.xy(i);const d=document.createElement('div');d.style.cssText=`position:absolute;left:${x}px;top:${y}px;width:${this.cs}px;height:${this.cs}px`;d.innerHTML=XM;this.marks.appendChild(d)}
   hi(list,c){list.forEach(i=>this.cells[i].classList.add('h'+c))}
+  kring(i){const[x,y]=this.xy(i);const d=document.createElement('div');d.className='kring';d.style.cssText=`left:${x}px;top:${y}px;width:${this.cs}px;height:${this.cs}px`;this.marks.appendChild(d)}
+  badge(i,t){const[x,y]=this.xy(i);const d=document.createElement('div');d.className='vbadge';d.textContent=t;d.style.cssText=`left:${x+this.cs*.58}px;top:${y+this.cs*.02}px;font-size:${Math.max(11,this.cs*.26)}px`;this.marks.appendChild(d)}
+  values(){this.items.forEach(it=>{if(!it.dead&&(it.kind==='me'||it.kind==='foe'))this.badge(it.i,it.t==='K'?'👑':VALUE[it.t])})}
+  revive(it){it.dead=false;it.el.getAnimations().forEach(a=>a.cancel());it.el.className='pc '+it.kind;if(!it.el.isConnected)this.pl.appendChild(it.el);this.place(it,it.i,true)}
+  rayTo(a,b,c){const n=this.n,r0=(a/n)|0,c0=a%n,r1=(b/n)|0,c1=b%n,dr=Math.sign(r1-r0),dc=Math.sign(c1-c0);
+    if(!(r0===r1||c0===c1||Math.abs(r1-r0)===Math.abs(c1-c0))){this.hi([b],c);return}
+    let r=r0+dr,cc=c0+dc;while(true){this.hi([r*n+cc],c);if(r===r1&&cc===c1)break;r+=dr;cc+=dc}}
   flash(i){const c=this.cells[i];c.classList.remove('flash');void c.offsetWidth;c.classList.add('flash')}
   occ(){const m=new Map();this.items.forEach(it=>{if(it.dead)return;if(it.kind==='rock')m.set(it.i,2);if(it.kind==='foe')m.set(it.i,3);if(it.kind==='me')m.set(it.i,1)});return j=>m.get(j)||0}
 }
@@ -312,7 +324,7 @@ function renderMap(){
   $('total').textContent=`⭐ ${tot} / ${max}`;
   const pin=`<svg class="raglon pin" viewBox="0 0 100 114">${ragSVG()}</svg>`;
   $('units').innerHTML=UNITS.map((u,ui)=>{const open=unitOpen(ui);
-    const art=u.icon==='board'?BOARDICON:u.icon==='cap'?pieceSVG('P',true):u.icon==='guard'?pieceSVG('R',true):pieceSVG(u.icon,false);
+    const art=u.icon==='board'?BOARDICON:u.icon==='cap'?pieceSVG('P',true):u.icon==='guard'?pieceSVG('R',true):/^[a-z]$/.test(u.icon)?pieceSVG(u.icon.toUpperCase(),true):pieceSVG(u.icon,false);
     const isNext=k=>nx&&nx.ui===ui&&nx.k===k;
     const nodes=[`<button class="node lesson ${prog.lesson[u.id]?'done':''} ${isNext(-1)?'next':''}" data-u="${ui}" data-k="-1" ${open?'':'disabled'} aria-label="שיעור">${isNext(-1)?pin:''}▶<small></small></button>`]
       .concat(u.ch.map((_,k)=>{const st=prog.stars[u.id+':'+k]||0,op=chOpen(ui,k);
@@ -362,6 +374,14 @@ async function doOp(op){
     case'wave':{const order=[...Array(n*n).keys()].sort((a,b)=>((a/n|0)+(a%n))-((b/n|0)+(b%n)));
       if(op[1]==='all'){for(let k=0;k<order.length;k+=n){order.slice(k,k+n).forEach(i=>LB.flash(i));await sleep(70)}}
       else{const want=op[1]==='dark'?'d':'l';LB.hi(order.filter(i=>LB.cells[i].classList.contains(want)),'y')}break}
+    case'ray':LB.rayTo(S(op[1]),S(op[2]),op[3]||'r');await sleep(250);break;
+    case'kingcheck':LB.kring(S(op[1]));sfx.bad();await sleep(400);break;
+    case'kingzone':{const k=S(op[1]),occ=LB.occ(),att=new Set();LB.items.forEach(it=>{if(!it.dead&&it.kind==='me')watches(it.t,it.i,n,occ,true).forEach(j=>att.add(j))});
+      const r=(k/n)|0,c=k%n;for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){if(!dr&&!dc)continue;const rr=r+dr,cc=c+dc;if(rr<0||cc<0||rr>=n||cc>=n)continue;
+        const j=rr*n+cc;LB.hi([j],att.has(j)?'w':'g');await sleep(90)}break}
+    case'party':{const it=LB.items.find(x=>x.kind==='me'&&!x.dead);sfx.promo();FX.confetti(50);if(it)LB.hop(it);mood($('lRag'),'happy',1500);await sleep(500);break}
+    case'bmove':{const a=S(op[1]),b=S(op[2]),it=LB.at(a,'foe');const victim=LB.at(b,'me');if(it){await LB.slide(it,b);if(victim){LB.remove(victim);sfx.cap()}}await sleep(300);break}
+    case'values':LB.values();sfx.ok();break;
     case'move':{const a=S(op[1]),b=S(op[2]),it=LB.at(a,'me')||LB.at(a);LB.clearMarks();
       const victim=LB.at(b,'foe');await LB.slide(it,b);if(victim){LB.remove(victim);sfx.cap();LB.hop(it);mood($('lRag'),'happy',1300)}
       if(it.t==='P'&&((b/n)|0)===0){LB.swap(it,pieceSVG('Q',false),'Q');sfx.promo();LB.celebrate(it);mood($('lRag'),'happy',1600)}
@@ -376,59 +396,128 @@ $('lGo').onclick=()=>{hush();openChal(LS.ui,0)};
 $('lBack').onclick=()=>{if(LS)LS.run++;renderMap()};
 
 /* =============== challenge =============== */
-let C=null;
+let C=null,lastExplain={t:'',at:0};
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+function coach(t,m,ms){$('cText').textContent=t;const p=speak(t,$('cRag'));if(m)mood($('cRag'),m,ms===undefined?1900:ms);return p}
 function openChal(ui,k){
-  const u=UNITS[ui],ch=u.ch[k];showScreen('chal',u.id);hush();
+  const u=UNITS[ui],ch=u.ch[k];showScreen('chal',u.id);hush();$('win').hidden=true;$('cUndo').classList.remove('pulse');
   $('cTitle').textContent=u.name+' · אתגר '+(k+1);$('cSub').textContent=`${k+1} מתוך ${u.ch.length}`;
-  C={ui,k,u,ch,hist:[],moves:0,hints:0,mist:0,busy:false,sel:0};preVoice([ch.say,...VOICE_LINES.praise,VOICE_LINES.hint]);
-  if(ch.type==='tap'){C.ans=new Set(ch.ans.map(a=>sq(a,ch.n)));C.found=new Set();CB.build({n:ch.n,mark:ch.mark})}
-  else{C.G=setup(ch);C.S=cloneS(C.G.start);C.par=solve(C.G,C.S).par;CB.build(ch);C.sel=0}
-  syncChal();$('cText').textContent=ch.say;speak(ch.say,$('cRag'));
-  ['cUndo','cHint'].forEach(id=>$(id).hidden=ch.type==='tap');
+  C={ui,k,u,ch,hist:[],moves:0,hints:0,mist:0,busy:false,sel:0,kind:'path'};
+  if(ch.type==='tap'){C.kind='tap';C.ans=new Set(ch.ans.map(a=>sq(a,ch.n)));C.found=new Set();CB.build({n:ch.n,mark:ch.mark})}
+  else{C.G=setup(ch);C.S=cloneS(C.G.start);CB.build(ch);
+    if(ch.type==='quiz'){C.kind='quiz';C.answer=isMate(C.G,C.S);C.par=1}
+    else if(C.G.one){C.kind='one';C.par=1}
+    else C.par=solve(C.G,C.S).par}
+  preVoice([ch.say,...VOICE_LINES.praise,VOICE_LINES.hint]);
+  $('cUndo').hidden=C.kind!=='path';$('cHint').hidden=C.kind==='tap';
+  $('qYes').hidden=$('qNo').hidden=C.kind!=='quiz';$('cReset').hidden=C.kind==='quiz';
+  syncChal();coach(ch.say);
 }
 function myItems(){return CB.items.filter(it=>it.kind==='me'&&!it.dead)}
+function markChecks(){
+  if(!C.G)return;const b=blackKing(C.G);if(blackInCheck(C.G,C.S))CB.kring(C.G.foeSq[b]);
+  const w=whiteCheckers(C.G,C.S);if(w.length){const ks=C.S.me[myKing(C.S)].i;CB.kring(ks);w.forEach(f=>{if(C.G.foeT[f]!=='N')CB.rayTo(C.G.foeSq[f],ks,'r');else CB.hi([C.G.foeSq[f]],'r')})}}
 function syncChal(){
-  if(C.ch.type==='tap'){$('cMoves').textContent=`נמצאו ${C.found.size} / ${C.ans.size}`;return}
-  $('cMoves').textContent=`מהלכים ${C.moves} · יעד ${C.par}`;$('cUndo').disabled=!C.hist.length;
-  CB.clearMarks();const mine=myItems();mine.forEach((it,k)=>it.el.classList.toggle('sel',k===C.sel&&mine.length>1));
-  if(!C.busy&&!done(C.G,C.S)){const piece=C.S.me[C.sel];if(piece)for(const m of legal(C.G,C.S,C.sel))CB.dot(m.to,m.cap)}
+  if(C.kind==='tap'){$('cMoves').textContent=`נמצאו ${C.found.size} / ${C.ans.size}`;return}
+  $('cMoves').textContent=C.kind==='quiz'?'האם זה מט?':C.kind==='one'?'מצאו מהלך אחד':`מהלכים ${C.moves} · יעד ${C.par}`;
+  $('cUndo').disabled=!C.hist.length;
+  CB.clearMarks();const mine=myItems();mine.forEach((it,k)=>it.el.classList.toggle('sel',k===C.sel&&mine.length>1&&C.kind!=='quiz'));
+  markChecks();
+  if(C.kind==='quiz'||C.busy||done(C.G,C.S))return;
+  if(C.S.me[C.sel])for(const m of legal(C.G,C.S,C.sel))CB.dot(m.to,m.cap);
 }
-// map engine piece index -> board item (same order as created; dead ones never belong to me)
 function itemOf(k){return myItems()[k]}
+// tapped a square the piece cannot reach: say why
+function explainIllegal(k,j){
+  const why=whyIllegal(C.G,C.S,k,j);if(!why)return;const T=C.S.me[k].t,n=C.G.n;let t;
+  if(why==='pattern')t=T==='B'&&((((p=>((p/n)|0)+p%n)(C.S.me[k].i))%2)!==((((j/n)|0)+j%n)%2))?VOICE_LINES.bishopColor:VOICE_LINES.pattern[T];
+  else if(why==='blocked')t=VOICE_LINES.blocked[T]||VOICE_LINES.pattern[T];
+  else t=VOICE_LINES[why];
+  const c=CB.cells[j];c.classList.remove('wrong');void c.offsetWidth;c.classList.add('wrong');sfx.bad();
+  const it=itemOf(k);if(it){it.el.classList.remove('shake');void it.el.offsetWidth;it.el.classList.add('shake');setTimeout(()=>it.el.classList.remove('shake'),450)}
+  if(t&&(t!==lastExplain.t||Date.now()-lastExplain.at>4000)){lastExplain={t,at:Date.now()};coach(t,'think',1600)}
+}
+function lunge(g,j){const[gx,gy]=CB.xy(g.i),[tx,ty]=CB.xy(j);g.el.style.setProperty('--lx',(tx-gx)*.6+'px');g.el.style.setProperty('--ly',(ty-gy)*.6+'px');g.el.classList.remove('lunge');void g.el.offsetWidth;g.el.classList.add('lunge')}
 async function tryMove(k,j){
-  if(C.busy)return;const r=play(C.G,C.S,k,j);if(!r)return false;
+  if(C.busy||C.kind==='quiz')return;
+  const r=play(C.G,C.S,k,j);if(!r){explainIllegal(k,j);return false}
+  if(C.kind==='one')return oneMove(k,j);
   C.busy=true;CB.clearMarks();const it=itemOf(k);
   if(r.fail==='danger'){
-    // show the danger: slide there, the guard lunges, slide back
     const from=it.i;await CB.slide(it,j);const g=CB.items.find(x=>x.kind==='foe'&&!x.dead&&x.i===C.G.foeSq[r.by]);
-    if(g){const[gx,gy]=CB.xy(g.i),[tx,ty]=CB.xy(j);g.el.style.setProperty('--lx',(tx-gx)*.6+'px');g.el.style.setProperty('--ly',(ty-gy)*.6+'px');g.el.classList.remove('lunge');void g.el.offsetWidth;g.el.classList.add('lunge')}
-    it.el.classList.add('shake');sfx.bad();C.mist++;mood($('cRag'),'oops',1900);
-    const t=VOICE_LINES.danger[C.G.foeT[r.by]];$('cText').textContent=t;speak(t,$('cRag'));
-    await sleep(650);it.el.classList.remove('shake');await CB.slide(it,from);C.busy=false;syncChal();return true}
+    if(g){lunge(g,j);CB.rayTo(g.i,j,'r')}
+    it.el.classList.add('shake');sfx.bad();C.mist++;coach(VOICE_LINES.danger[C.G.foeT[r.by]],'oops');
+    await sleep(900);it.el.classList.remove('shake');await CB.slide(it,from);C.busy=false;syncChal();return true}
   C.hist.push({S:cloneS(C.S),snap:snapItems()});
   const victim=r.cap>=0?CB.items.find(x=>x.kind==='foe'&&!x.dead&&x.i===j):null;
   await CB.slide(it,j);
   if(victim){CB.remove(victim);sfx.cap();CB.hop(it);mood($('cRag'),'happy',1200)}
   if(r.star>=0){const st=CB.items.find(x=>x.kind==='star'&&!x.dead&&x.i===j);if(st){CB.remove(st,'got');sfx.star();mood($('cRag'),'happy',1100)}}
-  if(r.promo){CB.swap(it,pieceSVG('Q',false),'Q');sfx.promo();CB.celebrate(it);const t=VOICE_LINES.promo;$('cText').textContent=t;speak(t,$('cRag'))}
+  if(r.promo){CB.swap(it,pieceSVG('Q',false),'Q');sfx.promo();CB.celebrate(it);if(!C.demo)coach(VOICE_LINES.promo)}
   C.S=r.s;C.moves++;C.busy=false;
-  if(done(C.G,C.S)){syncChal();setTimeout(winChal,400);return true}
-  syncChal();return true;
+  if(done(C.G,C.S)){syncChal();if(!C.demo)setTimeout(winChal,400);return true}
+  syncChal();
+  // went into a dead end? say so right away instead of letting the child wander
+  if(!C.demo&&solve(C.G,C.S,60000).par<0){coach(VOICE_LINES.deadend,'oops',2400);$('cUndo').classList.add('pulse')}
+  return true;
 }
+// one-move challenges: check, escape, mate, best capture
+async function oneMove(k,j){
+  const v=judge(C.G,C.S,k,j);if(!v)return false;C.busy=true;CB.clearMarks();
+  const it=itemOf(k),from=it.i,victim=v.cap>=0?CB.items.find(x=>x.kind==='foe'&&!x.dead&&x.i===j):null;
+  await CB.slide(it,j);if(victim){CB.remove(victim);sfx.cap()}
+  const goal=C.G.goal;
+  if(v.verdict==='ok'){C.S=v.s;C.moves=1;
+    if(goal==='check'||goal==='mate'){CB.kring(C.G.foeSq[blackKing(C.G)]);const c=CB.center(C.G.foeSq[blackKing(C.G)]);FX.ring(c.x,c.y,'#ef476f');FX.sparkle(c.x,c.y,14)}
+    else CB.celebrate(it);
+    if(goal==='best')CB.badge(j,'+'+VALUE[C.G.foeT[v.cap]]);
+    await coach(VOICE_LINES.ok[goal],'happy',2200);setTimeout(winChal,250);return true}
+  C.mist++;let t;const ks=()=>v.s.me[myKing(v.s)].i;
+  if(v.verdict==='selfcheck'){t=goal==='escape'?VOICE_LINES.stillcheck:VOICE_LINES.selfcheck;
+    const f=v.by,g=CB.items.find(x=>x.kind==='foe'&&!x.dead&&x.i===C.G.foeSq[f]);CB.kring(ks());if(C.G.foeT[f]!=='N')CB.rayTo(C.G.foeSq[f],ks(),'r');if(g)lunge(g,ks())}
+  else if(v.verdict==='notmate'){t=VOICE_LINES.notmate;CB.kring(C.G.foeSq[blackKing(C.G)])}
+  else if(v.verdict==='small'){t=VOICE_LINES.small;CB.values()}
+  else t=VOICE_LINES[v.verdict];
+  const said=coach(t,'oops',2400);sfx.bad();
+  if(v.verdict==='notmate')await showEscape(v.esc,v.s);else await sleep(1500);
+  await said;await sleep(200);
+  await CB.slide(it,from);if(victim)CB.revive(victim);C.busy=false;syncChal();
+  if(C.mist===2&&!C.hints)setTimeout(()=>{if(!C.busy&&$('win').hidden)coach(VOICE_LINES.encourage,'think',1800)},300);
+  return true;
+}
+// animate how black gets out, then put it back
+async function showEscape(e,s){
+  const g=CB.items.find(x=>x.kind==='foe'&&!x.dead&&x.i===C.G.foeSq[e.f]);if(!g)return sleep(1200);
+  await sleep(500);const from=g.i,eaten=e.cap?CB.items.find(x=>x.kind==='me'&&!x.dead&&x.i===e.to):null;
+  CB.hi([e.to],'g');await CB.slide(g,e.to);if(eaten){CB.remove(eaten);sfx.cap()}
+  await sleep(900);await CB.slide(g,from);if(eaten)CB.revive(eaten);
+}
+async function quiz(yes){
+  if(!C||C.busy||C.kind!=='quiz')return;C.busy=true;
+  if(yes===C.answer){C.moves=1;if(C.answer){CB.kring(C.G.foeSq[blackKing(C.G)]);FX.confetti(40)}
+    await coach(VOICE_LINES.ok.quiz,'happy',2000);setTimeout(winChal,250);return}
+  C.mist++;sfx.bad();
+  if(C.answer){const said=coach(VOICE_LINES.quizNoWrong,'oops',2400);const k=C.G.foeSq[blackKing(C.G)],n=C.G.n,occ=occOf(C.G,C.S,-1),att=new Set();
+    C.S.me.forEach(p=>watches(p.t,p.i,n,occ,true).forEach(j=>att.add(j)));const r=(k/n)|0,c=k%n;
+    for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){const rr=r+dr,cc=c+dc;if((dr||dc)&&rr>=0&&cc>=0&&rr<n&&cc<n){CB.hi([rr*n+cc],att.has(rr*n+cc)?'w':'g');await sleep(90)}}
+    await said;await sleep(400)}
+  else{const said=coach(VOICE_LINES.quizYesWrong,'oops',2400);await showEscape(blackEscapes(C.G,C.S)[0],C.S);await said}
+  C.busy=false;syncChal();
+}
+$('qYes').onclick=()=>{ac();sfx.tap();quiz(true)};$('qNo').onclick=()=>{ac();sfx.tap();quiz(false)};
 function snapItems(){return CB.items.map(it=>({it,i:it.i,dead:!!it.dead,t:it.t}))}
-function undo(){if(!C||C.busy||!C.hist.length)return;const h=C.hist.pop();C.S=h.S;C.moves--;sfx.tap();
-  // restore items
+function undo(){if(!C||C.busy||!C.hist.length)return;const h=C.hist.pop();C.S=h.S;C.moves--;sfx.tap();$('cUndo').classList.remove('pulse');
   CB.items.forEach(it=>{if(!h.snap.find(s=>s.it===it)){it.el.remove();it.dead=true}});
   h.snap.forEach(s=>{const it=s.it;if(it.dead&&!s.dead){it.dead=false;it.el.getAnimations().forEach(a=>a.cancel());it.el.className='pc '+it.kind;if(!it.el.parentNode)CB.pl.appendChild(it.el)}
     if(s.t!==it.t)CB.swap(it,pieceSVG(s.t,false),s.t);CB.place(it,s.i,false)});
-  // removed items' elements were deleted after animation: rebuild them if needed
   CB.items.forEach(it=>{if(!it.dead&&!it.el.isConnected)CB.pl.appendChild(it.el)});
   syncChal()}
 $('cUndo').onclick=undo;
 $('cReset').onclick=()=>{if(!C||C.busy)return;sfx.tap();openChal(C.ui,C.k)};
-$('cHint').onclick=()=>{if(!C||C.busy||C.ch.type==='tap')return;const r=solve(C.G,C.S);if(r.par<0){const t=VOICE_LINES.stuck;$('cText').textContent=t;speak(t,$('cRag'));return}
-  C.hints++;mood($('cRag'),'think',2200);const[k,j]=r.path[0];C.sel=k;syncChal();CB.hi([C.S.me[k].i],'y');CB.hi([j],'g');sfx.ok();
-  const t=VOICE_LINES.hint;$('cText').textContent=t;speak(t,$('cRag'))};
+$('cHint').onclick=()=>{if(!C||C.busy||C.kind==='tap')return;
+  if(C.kind==='quiz'){C.hints++;coach(VOICE_LINES.quizHint,'think',2200);return}
+  let mv;if(C.kind==='one'){const a=answers(C.G,C.S);mv=a[0]}else{const r=solve(C.G,C.S);if(r.par<0){coach(VOICE_LINES.stuck,'oops');$('cUndo').classList.add('pulse');return}mv=r.path[0]}
+  C.hints++;const[k,j]=mv;C.sel=k;syncChal();CB.hi([C.S.me[k].i],'y');CB.hi([j],'g');sfx.ok();coach(VOICE_LINES.hint,'think',2200)};
 $('cBack').onclick=()=>{hush();renderMap()};
 
 // input: tap piece / tap square / drag piece
@@ -437,10 +526,11 @@ function sqAt(e){const r=CB.el.getBoundingClientRect();const x=e.clientX-r.left,
   return Math.floor(y/CB.cs)*CB.n+Math.floor(x/CB.cs)}
 CB.el.addEventListener('pointerdown',e=>{
   if(!C||C.busy)return;ac();const i=sqAt(e);if(i<0)return;
-  if(C.ch.type==='tap'){tapSquare(i);return}
+  if(C.kind==='tap'){tapSquare(i);return}
+  if(C.kind==='quiz')return;
   const mk=C.S.me.findIndex(m=>m.i===i);
-  if(mk>=0){C.sel=mk;syncChal();const it=itemOf(mk);const r=CB.el.getBoundingClientRect();
-    drag={k:mk,it,id:e.pointerId,ox:e.clientX,oy:e.clientY,moved:false,r};CB.el.setPointerCapture(e.pointerId);return}
+  if(mk>=0){C.sel=mk;syncChal();const it=itemOf(mk);
+    drag={k:mk,it,id:e.pointerId,ox:e.clientX,oy:e.clientY,moved:false};CB.el.setPointerCapture(e.pointerId);return}
   tryMove(C.sel,i);
 });
 CB.el.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;const dx=e.clientX-drag.ox,dy=e.clientY-drag.oy;
@@ -448,7 +538,7 @@ CB.el.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;
   drag.it.el.style.transform=`translate(${x+dx}px,${y+dy}px) scale(1.12)`});
 const endDrag=async e=>{if(!drag||e.pointerId!==drag.id)return;const d=drag;drag=null;d.it.el.classList.remove('drag');
   if(!d.moved)return;const j=sqAt(e);CB.place(d.it,d.it.i,true);
-  if(j>=0&&j!==d.it.i){const ok=await tryMove(d.k,j);if(ok===false){sfx.bad();syncChal()}}};
+  if(j>=0&&j!==d.it.i){const ok=await tryMove(d.k,j);if(ok===false)syncChal()}};
 CB.el.addEventListener('pointerup',endDrag);CB.el.addEventListener('pointercancel',endDrag);
 
 function tapSquare(i){
@@ -457,17 +547,35 @@ function tapSquare(i){
   else{C.mist++;const c=CB.cells[i];c.classList.remove('wrong');void c.offsetWidth;c.classList.add('wrong');sfx.bad();mood($('cRag'),'oops',1200)}
 }
 function winChal(){
-  let st;if(C.ch.type==='tap')st=C.mist===0?3:C.mist<=2?2:1;
-  else{st=C.moves<=C.par?3:C.moves<=C.par+2?2:1;if(C.hints)st=Math.min(st,2)}
-  const key=C.u.id+':'+C.k;prog.stars[key]=Math.max(prog.stars[key]||0,st);saveProg();
+  if(!C||C.demo)return;
+  let st;if(C.kind==='tap'||C.kind==='quiz'||C.kind==='one')st=C.mist===0?3:C.mist<=(C.kind==='tap'?2:1)?2:1;
+  else st=C.moves<=C.par?3:C.moves<=C.par+2?2:1;
+  if(C.hints)st=Math.min(st,2);
+  const key=C.u.id+':'+C.k,prev=prog.stars[key]||0,improved=prev>0&&st>prev;prog.stars[key]=Math.max(prev,st);saveProg();
   $('wStars').innerHTML=[0,1,2].map(i=>`<span class="${i<st?'':'off'}" style="animation-delay:${.15+i*.18}s">⭐</span>`).join('');
-  const praise=VOICE_LINES.praise[Math.floor(Math.random()*VOICE_LINES.praise.length)];
-  $('wT').textContent=praise;
-  $('wP').textContent=C.ch.type==='tap'?(st===3?'בלי אף טעות!':'מצאתם את כולן!'):
-    (C.moves<=C.par?`ב־${C.moves} מהלכים. הכי מעט שאפשר!`:`ב־${C.moves} מהלכים. אפשר גם ב־${C.par}. רוצים לנסות שוב?`);
+  let line;
+  if(C.kind==='path')line=pick(st===3?VOICE_LINES.win3:st===2?VOICE_LINES.win2:VOICE_LINES.win1);
+  else line=pick(VOICE_LINES.praise);
+  $('wT').textContent=st===3?'מושלם!':st===2?'כל הכבוד!':'הצלחתם!';
+  let p;
+  if(C.kind==='tap')p=st===3?'בלי אף טעות!':'מצאתם את כולן!';
+  else if(C.kind==='path')p=C.moves<=C.par?`ב־${C.moves} מהלכים. הכי מעט שאפשר!`:`ב־${C.moves} מהלכים. אפשר גם ב־${C.par}!`;
+  else p=C.mist===0?(C.hints?'עם רמז קטן. בפעם הבאה בלי!':'בניסיון הראשון!'):`הצלחתם אחרי ${C.mist+1} ניסיונות. כל טעות מלמדת משהו!`;
+  if(improved)p='שיפרתם! '+p;
+  $('wP').textContent=p;
+  $('wShow').hidden=!(C.kind==='path'&&C.moves>C.par);if(!$('wShow').hidden)$('wShow').textContent=`איך עושים ב־${C.par}? 👀`;
   const last=C.k>=C.u.ch.length-1;$('wNext').textContent=last?(C.ui<UNITS.length-1?'לנושא הבא ⭐':'למפה'):'לאתגר הבא ⭐';
-  $('win').hidden=false;sfx.win();mood($('wRag'),'happy',0);FX.fireworks(4);FX.confetti(90);speak(praise,$('wRag'));
+  $('win').hidden=false;sfx.win();mood($('wRag'),'happy',0);FX.fireworks(st===3?4:2);FX.confetti(st===3?90:50);
+  speak(line,$('wRag')).then(()=>{if(improved&&!$('win').hidden)speak(VOICE_LINES.improve,$('wRag'))});
 }
+// "show me": replay the shortest way on the board, then hand it back to the child
+async function showMe(){
+  const ui=C.ui,k=C.k;$('win').hidden=true;openChal(ui,k);C.demo=true;C.busy=true;
+  await coach(VOICE_LINES.showme,'think',0);const path=solve(C.G,C.S).path||[];
+  for(const[pk,j]of path){if(!C||!C.demo)return;const it=itemOf(pk);CB.clearMarks();CB.hi([it.i],'y');CB.hi([j],'g');await sleep(650);C.busy=false;await tryMove(pk,j);C.busy=true;await sleep(350)}
+  mood($('cRag'),'happy',1500);await sleep(500);if(!C||!C.demo)return;await coach(VOICE_LINES.yourturn,'happy',1500);openChal(ui,k);
+}
+$('wShow').onclick=()=>{sfx.tap();showMe()};
 $('wAgain').onclick=()=>{$('win').hidden=true;openChal(C.ui,C.k)};
 $('wNext').onclick=()=>{$('win').hidden=true;if(C.k<C.u.ch.length-1)openChal(C.ui,C.k+1);else if(C.ui<UNITS.length-1)openLesson(C.ui+1);else renderMap()};
 
