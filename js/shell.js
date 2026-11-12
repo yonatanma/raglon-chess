@@ -1,5 +1,5 @@
 /* ===== app shell: kid profiles, parent area, install, offline, wake lock ===== */
-const APP_VERSION='1.3.0';
+const APP_VERSION='1.3.1';
 const KID_COLORS=['#ff6f91','#4d96ff','#33b27a','#ffb703','#9b5de5','#ff8c42'];
 let KIDS=store.get('rc-kids',[]),curKid=store.get('rc-cur',null);
 const kidOf=id=>KIDS.find(k=>k.id===id);
@@ -78,7 +78,7 @@ function renderParent(){
   $('pBody').innerHTML=`<h3>הגדרות</h3>${sw('voice',voiceOn,'קריינות',voiceHint)}${sw('sound',soundOn,'צלילים')}${sw('haptic',hapticOn,'רטט',navigator.vibrate?'':'במכשיר הזה אין רטט')}
     <h3>הילדים</h3>${kids}${KIDS.length<6?'<button data-act="add">+ הוספת ילד</button>':''}
     <h3>התקנה</h3>${inst}
-    <h3>עדכונים</h3><div class="prow"><div><b>גרסה ${APP_VERSION}</b><small id="updMsg">${swWaiting?'גרסה חדשה מוכנה להתקנה':'המשחק בודק עדכונים בכל פתיחה'}</small></div><button data-act="upd">${swWaiting?'עדכון עכשיו':'בדיקה'}</button></div>
+    <h3>עדכונים</h3><div class="prow"><div><b>גרסה ${APP_VERSION}</b><small id="updMsg">המשחק מתעדכן לבד בכל פתיחה</small></div><button data-act="upd">בדיקה</button></div>
     <p class="ver">גרסה ${APP_VERSION}${offlineReady?' · מוכן לעבודה בלי אינטרנט':''}${window.VOICE_META&&VOICE_META.provider==='elevenlabs'?' · הקריינות נוצרה עם ElevenLabs':''}</p>`;
 }
 function openParent(){confirmKey=null;renderParent();$('parent').hidden=false}
@@ -92,10 +92,7 @@ $('pBody').onclick=e=>{const b=e.target.closest('button');if(!b)return;sfx.tap()
   if(act==='add'){openKidForm();return}
   if(act==='edit'){openKidForm(id);return}
   if(act==='install'){doInstall();return}
-  if(act==='upd'){if(swWaiting){swWaiting.postMessage('skip');return}
-    $('updMsg').textContent='בודק...';checkUpdate(true).then(found=>{if(!found){$('updMsg').textContent=navigator.onLine?'יש לך את הגרסה האחרונה':'אין אינטרנט כרגע';return}
-      $('updMsg').textContent='מוריד את הגרסה החדשה...';const w=swReg.installing||swReg.waiting;if(swReg.waiting){swWaiting=swReg.waiting;renderParent();return}
-      w&&w.addEventListener('statechange',()=>{if(w.state==='installed'){swWaiting=w;renderParent()}})});return}
+  if(act==='upd'){$('updMsg').textContent='בודק...';checkUpdate(true).then(found=>{$('updMsg').textContent=found?'מוריד את הגרסה החדשה. המשחק ייפתח מחדש בעוד רגע':navigator.onLine?'יש לך את הגרסה האחרונה':'אין אינטרנט כרגע'});return}
   if(act==='all'){const p=store.get('rc-prog-'+id,{lesson:{},stars:{}});p.all=!p.all;store.set('rc-prog-'+id,p);if(id===curKid)prog.all=p.all;renderParent();return}
   if(act==='reset'||act==='del'){if(confirmKey!==act+id){confirmKey=act+id;renderParent();return}confirmKey=null;
     try{localStorage.removeItem('rc-prog-'+id)}catch(e){}
@@ -124,16 +121,16 @@ function checkUpdate(force){if(!swReg||!navigator.onLine)return Promise.resolve(
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
 addEventListener('online',()=>checkUpdate(true));
 function toast(text,btn,fn){$('toastT').textContent=text;$('toastB').textContent=btn;$('toastB').onclick=fn;$('toast').hidden=false}
+// A new version installs by itself. The page reloads right away unless a child is in the middle of a lesson, challenge or game.
+const midPlay=()=>['lesson','chal','play'].some(id=>!$(id).hidden);
 if('serviceWorker' in navigator&&location.protocol.startsWith('http')){
+  let had=!!navigator.serviceWorker.controller;
   navigator.serviceWorker.register('sw.js').then(reg=>{
-    if(reg.active)offlineReady=true;
-    const watch=w=>{w.addEventListener('statechange',()=>{if(w.state==='installed'){if(navigator.serviceWorker.controller){swWaiting=w;toast('יש גרסה חדשה של המשחק','עדכון',()=>w.postMessage('skip'))}else offlineReady=true}})};
-    if(reg.waiting&&navigator.serviceWorker.controller){swWaiting=reg.waiting;toast('יש גרסה חדשה של המשחק','עדכון',()=>reg.waiting.postMessage('skip'))}
-    reg.addEventListener('updatefound',()=>watch(reg.installing));
-    swReg=reg;checkUpdate();
-    setInterval(checkUpdate,30*60*1000);
+    if(reg.active)offlineReady=true;swReg=reg;checkUpdate();setInterval(checkUpdate,30*60*1000);
+    navigator.serviceWorker.ready.then(r=>{offlineReady=true;r.active&&r.active.postMessage('audio')});
   }).catch(()=>{});
-  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(reloading)return;reloading=true;location.reload()});
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(!had){had=true;return}if(reloading)return;
+    const go=()=>{reloading=true;location.reload()};if(midPlay())toast('יש גרסה חדשה של המשחק','עדכון',go);else go()});
 }
 
 /* ---------- keep the screen awake while playing ---------- */
