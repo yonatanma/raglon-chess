@@ -1,8 +1,8 @@
 // Offline support: the whole game is cached on first visit, then served from the cache.
-const VERSION='rc-1.2.1';
+const VERSION='rc-1.3.0';
 const AUDIO_REV='90b2d4ea'; // updated by scripts/gen-voice.mjs so phones fetch new recordings
 const FILES=['./','index.html','manifest.webmanifest','css/app.css','css/shell.css',
-  'js/engine.js','js/content.js','js/app.js','js/shell.js',
+  'js/engine.js','js/content.js','js/app.js','js/chess.js','js/puzzles.js','js/play.js','js/shell.js',
   'fonts/varela-round-hebrew-400-normal.woff2','fonts/varela-round-latin-400-normal.woff2',
   'fonts/secular-one-hebrew-400-normal.woff2','fonts/secular-one-latin-400-normal.woff2',
   'icons/icon-192.png','icons/icon-512.png','icons/maskable-512.png','icons/apple-touch-icon.png','icons/favicon-32.png'];

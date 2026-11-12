@@ -1,5 +1,5 @@
 /* ===== app shell: kid profiles, parent area, install, offline, wake lock ===== */
-const APP_VERSION='1.2.1';
+const APP_VERSION='1.3.0';
 const KID_COLORS=['#ff6f91','#4d96ff','#33b27a','#ffb703','#9b5de5','#ff8c42'];
 let KIDS=store.get('rc-kids',[]),curKid=store.get('rc-cur',null);
 const kidOf=id=>KIDS.find(k=>k.id===id);
@@ -141,14 +141,14 @@ let wakeLock=null;
 async function wake(on){try{if(on&&!wakeLock&&navigator.wakeLock){wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>wakeLock=null)}
   else if(!on&&wakeLock){await wakeLock.release();wakeLock=null}}catch(e){}}
 const _showScreen=showScreen;
-showScreen=function(id,theme){_showScreen(id,theme);wake(id==='lesson'||id==='chal')};
+showScreen=function(id,theme){_showScreen(id,theme);wake(id==='lesson'||id==='chal'||id==='play')};
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&(!$('lesson').hidden||!$('chal').hidden))wake(true)});
 
 /* ---------- Android back button / swipe-back: go up one level instead of leaving ---------- */
 history.replaceState({rc:1},'');history.pushState({rc:2},'');
 addEventListener('popstate',()=>{history.pushState({rc:2},'');
-  for(const o of['iosHelp','addKid','gate','parent','win'])if(!$(o).hidden){$(o).hidden=true;return}
-  if(!$('lesson').hidden){$('lBack').click();return}if(!$('chal').hidden){$('cBack').click();return}if(!$('map').hidden){showWho()}});
+  for(const o of['iosHelp','addKid','gate','parent','win','lvlPick','trophies','gEnd'])if(!$(o).hidden){$(o).hidden=true;return}
+  if(!$('play').hidden){$('pBack').click();return}if(!$('lesson').hidden){$('lBack').click();return}if(!$('chal').hidden){$('cBack').click();return}if(!$('map').hidden){showWho()}});
 
 /* ---------- boot ---------- */
 if(curKid&&kidOf(curKid)){useKid(curKid);renderMap()}else showWho();

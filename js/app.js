@@ -316,7 +316,7 @@ function nextThing(){for(let ui=0;ui<UNITS.length;ui++){const u=UNITS[ui];if(!un
   for(let k=0;k<u.ch.length;k++)if(!chDone(u,k))return{ui,k}}return null}
 
 /* =============== map =============== */
-function showScreen(id,theme){const was=['who','map','lesson','chal'].find(s=>!$(s).hidden);['who','map','lesson','chal'].forEach(s=>$(s).hidden=s!==id);$('win').hidden=true;
+function showScreen(id,theme){const was=['who','map','lesson','chal','play'].find(s=>!$(s).hidden);['who','map','lesson','chal','play'].forEach(s=>$(s).hidden=s!==id);$('win').hidden=true;
   Scene.set(theme||'map');if(was!==id&&$(id).animate)$(id).animate([{opacity:0,transform:'translateY(18px)'},{opacity:1,transform:'none'}],{duration:340,easing:'cubic-bezier(.2,.8,.3,1)'})}
 function renderMap(){
   hush();showScreen('map');const nx=nextThing();

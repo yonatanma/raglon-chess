@@ -99,3 +99,24 @@ input{font-family:var(--body);-webkit-user-select:text;user-select:text}
 button.pulse{animation:nudge 1s ease-in-out infinite;background:var(--sun);color:var(--sun-ink)}
 @keyframes nudge{50%{transform:scale(1.08)}}
 #wShow{background:#eef5ff}
+
+/* ===== play hub, levels, trophies ===== */
+.hub{background:#fff;border-radius:26px;padding:14px;box-shadow:0 6px 0 #9fbbd6;margin-bottom:18px;display:flex;flex-direction:column;gap:10px}
+.hubTop{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hubTop b{font-family:var(--display);font-weight:400;font-size:1.35rem}
+.hubTop>span{display:flex;gap:6px;align-items:center}
+.hubTop .pill{box-shadow:0 2px 0 #b7cde4;background:#eef5ff;font-size:.9rem;color:var(--ink)}
+.hubBtns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.hubBtns button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;font-size:.95rem;background:var(--sun);color:var(--sun-ink);box-shadow:0 4px 0 #c99400}
+.hubBtns button i{font-style:normal;font-size:1.8rem;line-height:1.1}
+.hubBtns button small{font-size:.72rem;font-variant-numeric:tabular-nums;opacity:.8}
+.lvls{display:flex;flex-direction:column;gap:10px;width:100%}
+.lvls button{display:flex;align-items:center;gap:12px;text-align:start;background:#eef5ff;padding:10px 14px}
+.lvls i{font-style:normal;font-size:2rem}.lvls span{display:flex;flex-direction:column;flex:1}.lvls small{font-weight:400;color:var(--muted);font-size:.85rem}.lvls em{font-style:normal;font-size:1.3rem}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;overflow-y:auto;width:100%;padding:2px}
+.trophy{background:#f3f8ff;border-radius:18px;padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;opacity:.6}
+.trophy.on{opacity:1;background:#fff6d6;box-shadow:0 3px 0 #e7c860}
+.trophy span{font-size:2.2rem;line-height:1.2}.trophy b{font-size:.95rem}.trophy small{font-size:.75rem;color:var(--muted)}
+.tpop{position:fixed;z-index:50;top:max(14px,env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:#fff6d6;color:var(--ink);
+  border-radius:22px;padding:10px 20px 10px 16px;box-shadow:0 4px 0 #e7c860,0 12px 30px rgba(0,0,0,.25);animation:pop .4s cubic-bezier(.2,1.5,.4,1);white-space:nowrap}
+.tpop span{font-size:2.4rem}.tpop div{display:flex;flex-direction:column}.tpop small{color:var(--muted);font-size:.8rem}.tpop b{font-family:var(--display);font-weight:400;font-size:1.2rem}
