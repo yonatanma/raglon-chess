@@ -19,13 +19,18 @@
 - `js/shell.js`: פרופילים, אזור הורים, התקנה, עבודה בלי אינטרנט
 - `sw.js`: שמירת הקבצים לעבודה בלי אינטרנט
 
-## קריינות מוקלטת (Azure)
+## קריינות מוקלטת
 כל המשפטים של רגלון מוקלטים מראש לקבצי `audio/*.mp3`. האפליקציה מנגנת אותם, ואם הקלטה חסרה היא חוזרת לקול של המכשיר.
-1. ב־Azure: יוצרים משאב **Speech service** (אפשר במסלול החינמי F0) ומעתיקים את **KEY 1** ואת ה־**Location/Region**.
-2. במאגר: Settings ← Secrets and variables ← Actions ← מוסיפים `AZURE_SPEECH_KEY` ו־`AZURE_SPEECH_REGION`.
-3. בלשונית **Actions** מריצים את **Record narration**. אפשר לשנות שם, מהירות וגובה של הקול.
+
+**ElevenLabs (ברירת המחדל, מודל eleven_v3):**
+1. ב־ElevenLabs: בוחרים קול, לוחצים **Copy voice ID**, ויוצרים API key עם הרשאת Text to Speech.
+2. במאגר: Settings ← Secrets and variables ← Actions ← מוסיפים Secret בשם `ELEVENLABS_API_KEY`. אפשר גם להוסיף Variable בשם `ELEVENLABS_VOICE_ID` עם מזהה הקול.
+3. בלשונית **Actions** מריצים את **Record narration** ומדביקים את מזהה הקול.
+
+**Azure (אפשרות נוספת):** מוסיפים `AZURE_SPEECH_KEY` ו־`AZURE_SPEECH_REGION`, ובהרצה בוחרים `azure`.
+
 - מילה שנשמעת לא נכון? מוסיפים אותה עם ניקוד ל־`scripts/lexicon.json` ומריצים שוב.
-- רק משפטים חדשים או ששונו מוקלטים מחדש.
+- רק משפטים חדשים או ששונו מוקלטים מחדש. החלפת קול מקליטה הכול מחדש.
 
 ## עדכון גרסה
 אחרי כל שינוי, להעלות את `VERSION` ב־`sw.js` ואת `APP_VERSION` ב־`js/shell.js`. בפתיחה הבאה תופיע הודעה "יש גרסה חדשה".

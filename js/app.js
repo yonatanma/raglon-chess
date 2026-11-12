@@ -70,7 +70,7 @@ let speakTok=0;
 /* recorded narration: audio/<key>.mp3, key = FNV-1a of the sentence (same function as scripts/gen-voice.mjs) */
 function vkey(t){let x=0x811c9dc5;const s=t.normalize('NFC').trim();for(let i=0;i<s.length;i++){x^=s.charCodeAt(i);x=Math.imul(x,0x01000193)>>>0}return x.toString(16).padStart(8,'0')}
 let VOICE=null;const vbufs=new Map();let vsrc=null;
-fetch('audio/voice.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.files)VOICE=new Set(Object.keys(j.files))}).catch(()=>{});
+fetch('audio/voice.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.files){VOICE=new Set(Object.keys(j.files));window.VOICE_META=j.settings||{}}}).catch(()=>{});
 function vbuf(k){if(vbufs.has(k))return vbufs.get(k);const a=ac();if(!a)return Promise.reject();
   const p=fetch('audio/'+k+'.mp3').then(r=>{if(!r.ok)throw new Error('missing');return r.arrayBuffer()}).then(b=>new Promise((res,rej)=>a.decodeAudioData(b,res,rej)));
   vbufs.set(k,p);p.catch(()=>vbufs.delete(k));return p}

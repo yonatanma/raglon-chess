@@ -64,7 +64,7 @@ $('gateCancel').onclick=()=>{holdEnd();$('gate').hidden=true};
 const sw=(id,on,label,hint)=>`<div class="prow"><div><b>${label}</b>${hint?`<small>${hint}</small>`:''}</div><button class="switch" role="switch" aria-checked="${on}" data-set="${id}" aria-label="${label}"><i></i></button></div>`;
 let confirmKey=null;
 function renderParent(){
-  const voiceHint=heVoice?'קול עברי נמצא במכשיר':'לא נמצא קול עברי במכשיר. הכתוביות יופיעו לבד';
+  const voiceHint=VOICE?'רגלון מדבר בקול מוקלט':heVoice?'קול עברי של המכשיר':'לא נמצא קול עברי במכשיר. הכתוביות יופיעו לבד';
   const kids=KIDS.map(k=>{const p=store.get('rc-prog-'+k.id,{});return `<div class="pkid" style="--kc:${k.color}"><svg class="raglon" viewBox="0 0 100 114" aria-hidden="true">${ragSVG(k.color)}</svg>
     <div class="pk-i"><b>${esc(k.name)}</b><small>⭐ ${starsOf(k.id)} · ${landOf(k.id)}</small></div>
     <div class="pk-a">
@@ -78,7 +78,7 @@ function renderParent(){
   $('pBody').innerHTML=`<h3>הגדרות</h3>${sw('voice',voiceOn,'קריינות',voiceHint)}${sw('sound',soundOn,'צלילים')}${sw('haptic',hapticOn,'רטט',navigator.vibrate?'':'במכשיר הזה אין רטט')}
     <h3>הילדים</h3>${kids}${KIDS.length<6?'<button data-act="add">+ הוספת ילד</button>':''}
     <h3>התקנה</h3>${inst}
-    <p class="ver">גרסה ${APP_VERSION}${offlineReady?' · מוכן לעבודה בלי אינטרנט':''}</p>`;
+    <p class="ver">גרסה ${APP_VERSION}${offlineReady?' · מוכן לעבודה בלי אינטרנט':''}${window.VOICE_META&&VOICE_META.provider==='elevenlabs'?' · הקריינות נוצרה עם ElevenLabs':''}</p>`;
 }
 function openParent(){confirmKey=null;renderParent();$('parent').hidden=false}
 $('pBody').onclick=e=>{const b=e.target.closest('button');if(!b)return;sfx.tap();
