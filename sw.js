@@ -1,6 +1,6 @@
 // Offline support: the whole game is cached on first visit, then served from the cache.
 const VERSION='rc-1.1.0';
-const AUDIO_REV='none'; // updated by scripts/gen-voice.mjs so phones fetch new recordings
+const AUDIO_REV='e3f55c3b'; // updated by scripts/gen-voice.mjs so phones fetch new recordings
 const FILES=['./','index.html','manifest.webmanifest','css/app.css','css/shell.css',
   'js/engine.js','js/content.js','js/app.js','js/shell.js',
   'fonts/varela-round-hebrew-400-normal.woff2','fonts/varela-round-latin-400-normal.woff2',
