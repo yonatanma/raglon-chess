@@ -10,6 +10,7 @@ let VOICE=PROVIDER==='azure'?(process.env.VOICE||'he-IL-AvriNeural'):(process.en
 const RATE=process.env.RATE||'-6%',PITCH=process.env.PITCH||'+5%',TAG=(process.env.TAG||'').trim();
 const KEY=PROVIDER==='azure'?process.env.AZURE_SPEECH_KEY:process.env.ELEVENLABS_API_KEY,REGION=process.env.AZURE_SPEECH_REGION;
 const fail=m=>{console.error(m);process.exit(1)};
+let elevenLang=true; // send language_code until the API says it does not accept it
 if(!MOCK){
   if(PROVIDER==='azure'&&(!KEY||!REGION))fail('Missing AZURE_SPEECH_KEY / AZURE_SPEECH_REGION secrets.');
   if(PROVIDER==='elevenlabs'&&!KEY)fail('Missing the ELEVENLABS_API_KEY secret. Add it under Settings > Secrets and variables > Actions.');
@@ -58,7 +59,6 @@ async function azure(t,f){const ssml=`<speak version="1.0" xml:lang="he-IL"><voi
   const r=await retry(()=>fetch(`https://${REGION}.tts.speech.microsoft.com/cognitiveservices/v1`,{method:'POST',body:ssml,headers:{
     'Ocp-Apim-Subscription-Key':KEY,'Content-Type':'application/ssml+xml','X-Microsoft-OutputFormat':'audio-24khz-48kbitrate-mono-mp3','User-Agent':'raglon-chess-voice'}}));
   fs.writeFileSync(f,Buffer.from(await r.arrayBuffer()))}
-let elevenLang=true;
 async function eleven(t,f){const text=(TAG?TAG+' ':'')+say(t);
   const call=()=>fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE}?output_format=mp3_44100_64`,{method:'POST',
     headers:{'xi-api-key':KEY,'Content-Type':'application/json','Accept':'audio/mpeg'},
