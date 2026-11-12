@@ -8,7 +8,7 @@ on:
         options: [elevenlabs, azure]
         default: elevenlabs
       voice_id:
-        description: "ElevenLabs: voice ID (leave empty to use the ELEVENLABS_VOICE_ID variable)"
+        description: "ElevenLabs: voice ID (empty = ELEVENLABS_VOICE_ID variable, or a friendly voice picked automatically)"
         default: ""
       tag:
         description: "ElevenLabs: tone tag, for example [cheerfully] (optional)"

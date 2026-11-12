@@ -6,16 +6,25 @@
 import fs from 'node:fs';import vm from 'node:vm';import {execFileSync} from 'node:child_process';
 const root=new URL('..',import.meta.url).pathname,AUD=root+'audio/';
 const PROVIDER=(process.env.PROVIDER||'elevenlabs').toLowerCase(),MOCK=process.env.MOCK==='1';
-const VOICE=PROVIDER==='azure'?(process.env.VOICE||'he-IL-AvriNeural'):(process.env.VOICE_ID||'').trim();
+let VOICE=PROVIDER==='azure'?(process.env.VOICE||'he-IL-AvriNeural'):(process.env.VOICE_ID||'').trim();
 const RATE=process.env.RATE||'-6%',PITCH=process.env.PITCH||'+5%',TAG=(process.env.TAG||'').trim();
 const KEY=PROVIDER==='azure'?process.env.AZURE_SPEECH_KEY:process.env.ELEVENLABS_API_KEY,REGION=process.env.AZURE_SPEECH_REGION;
 const fail=m=>{console.error(m);process.exit(1)};
 if(!MOCK){
   if(PROVIDER==='azure'&&(!KEY||!REGION))fail('Missing AZURE_SPEECH_KEY / AZURE_SPEECH_REGION secrets.');
   if(PROVIDER==='elevenlabs'&&!KEY)fail('Missing the ELEVENLABS_API_KEY secret. Add it under Settings > Secrets and variables > Actions.');
-  if(PROVIDER==='elevenlabs'&&!/^[A-Za-z0-9]{10,40}$/.test(VOICE))fail('Missing or invalid voice ID. Copy it from the voice in ElevenLabs and paste it when you run the workflow.');
+  if(PROVIDER==='elevenlabs'&&VOICE&&!/^[A-Za-z0-9]{10,40}$/.test(VOICE))fail('Invalid voice ID. Copy it from the voice in ElevenLabs, or leave it empty to pick one automatically.');
 }
 
+// 0. no voice chosen: pick a ready-made voice from the account (prefers warm, friendly narrators)
+if(!MOCK&&PROVIDER==='elevenlabs'&&!VOICE){
+  const r=await fetch('https://api.elevenlabs.io/v1/voices',{headers:{'xi-api-key':KEY}});
+  if(!r.ok)fail(`Could not list ElevenLabs voices (${r.status}): ${(await r.text()).slice(0,300)}`);
+  const vs=((await r.json()).voices||[]);if(!vs.length)fail('This ElevenLabs account has no voices yet. Add one in the voice library.');
+  const words=['cheer','friend','warm','child','young','playful','story','upbeat','happy'];
+  const score=v=>{const txt=JSON.stringify([v.name,v.description,v.labels]).toLowerCase();return words.filter(w=>txt.includes(w)).length*2+(v.category==='premade'?1:0)};
+  const pick=vs.slice().sort((a,b)=>score(b)-score(a))[0];VOICE=pick.voice_id;console.log(`Picked voice "${pick.name}" (${VOICE})`);
+}
 // 1. collect sentences from the game content
 const ctx={};vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(root+'js/content.js','utf8')+';this.UNITS=UNITS;this.VOICE_LINES=VOICE_LINES;',ctx);
