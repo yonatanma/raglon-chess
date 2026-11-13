@@ -1,6 +1,6 @@
 // Offline support. The game's own files are small and install fast; recordings live in their own cache
 // that survives updates and fills in the background, so an update never waits for audio.
-const VERSION='rc-1.3.1';
+const VERSION='rc-1.3.2';
 const AUDIO_REV='3ff400c6'; // updated by scripts/gen-voice.mjs so phones fetch new recordings
 const FILES=['./','index.html','manifest.webmanifest','css/app.css','css/shell.css',
   'js/engine.js','js/content.js','js/app.js','js/chess.js','js/puzzles.js','js/play.js','js/shell.js',
@@ -29,7 +29,11 @@ self.addEventListener('message',e=>{if(e.data==='skip')self.skipWaiting();if(e.d
 self.addEventListener('fetch',e=>{
   const r=e.request,u=new URL(r.url);if(r.method!=='GET'||u.origin!==location.origin)return;
   if(r.mode==='navigate'){e.respondWith(caches.match('index.html',{cacheName:VERSION}).then(c=>c||fetch(r)));return}
-  if(u.pathname.endsWith('/audio/voice.json')){e.respondWith(fetch(r.url,{cache:'no-cache'}).then(res=>{if(res.ok){const cp=res.clone();caches.open(AUDIO).then(c=>c.put('audio/voice.json',cp))}return res}).catch(()=>caches.match('audio/voice.json',{cacheName:AUDIO}).then(c=>c||Response.error())));return}
+  if(u.pathname.endsWith('/audio/voice.json')){e.respondWith((async()=>{ // fresh list when the network answers quickly, saved list otherwise
+    const c=await caches.open(AUDIO),cached=await c.match('audio/voice.json');
+    const net=fetch(r.url,{cache:'no-cache'}).then(res=>{if(res.ok)c.put('audio/voice.json',res.clone());return res});
+    if(!cached)return net;
+    return Promise.race([net.then(res=>res.ok?res:cached).catch(()=>cached),new Promise(z=>setTimeout(()=>z(cached),2500))])})());return}
   if(u.pathname.includes('/audio/')){e.respondWith(caches.open(AUDIO).then(c=>c.match(r).then(hit=>hit||fetch(r).then(res=>{if(res.ok)c.put(r,res.clone());return res}))));return}
   e.respondWith(caches.match(r,{ignoreSearch:true,cacheName:VERSION}).then(c=>c||fetch(r).then(res=>{if(res.ok){const cp=res.clone();caches.open(VERSION).then(ca=>ca.put(r,cp))}return res})));
 });

@@ -69,13 +69,19 @@ try{pickVoice();speechSynthesis.onvoiceschanged=pickVoice}catch(e){}
 let speakTok=0;
 /* recorded narration: audio/<key>.mp3, key = FNV-1a of the sentence (same function as scripts/gen-voice.mjs) */
 function vkey(t){let x=0x811c9dc5;const s=t.normalize('NFC').trim();for(let i=0;i<s.length;i++){x^=s.charCodeAt(i);x=Math.imul(x,0x01000193)>>>0}return x.toString(16).padStart(8,'0')}
-let VOICE=null;const vbufs=new Map();let vsrc=null;
-fetch('audio/voice.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.files){VOICE=new Set(Object.keys(j.files));window.VOICE_META=j.settings||{}}}).catch(()=>{});
+let VOICE=null;const vbufs=new Map();let vsrc=null,recSeen=store.get('rc-rec',false);
+const sawRec=()=>{if(!recSeen){recSeen=true;store.set('rc-rec',true)}};
+// The list of recordings is a bonus, not a requirement: playback asks for the recording itself, and the list is retried until it arrives.
+function loadVoice(n){fetch('audio/voice.json',{cache:'no-cache'}).then(r=>{if(r.status===404){VOICE=new Set();return null}if(!r.ok)throw 0;return r.json()})
+  .then(j=>{if(j&&j.files){VOICE=new Set(Object.keys(j.files));window.VOICE_META=j.settings||{};if(VOICE.size)sawRec()}})
+  .catch(()=>{setTimeout(()=>loadVoice(n+1),Math.min(30000,2000*(n+1)))})}
+loadVoice(0);
 function vbuf(k){if(vbufs.has(k))return vbufs.get(k);const a=ac();if(!a)return Promise.reject();
-  const p=fetch('audio/'+k+'.mp3').then(r=>{if(!r.ok)throw new Error('missing');return r.arrayBuffer()}).then(b=>new Promise((res,rej)=>a.decodeAudioData(b,res,rej)));
+  const get=()=>fetch('audio/'+k+'.mp3').then(r=>{if(!r.ok)throw new Error('missing');return r.arrayBuffer()});
+  const p=get().catch(()=>new Promise(z=>setTimeout(z,700)).then(get)).then(b=>new Promise((res,rej)=>a.decodeAudioData(b,res,rej)));
   vbufs.set(k,p);p.catch(()=>vbufs.delete(k));return p}
-function preVoice(list){if(!VOICE||!voiceOn)return;list.forEach(t=>{const k=vkey(t);if(VOICE.has(k))vbuf(k).catch(()=>{})})}
-const hasRec=t=>!!(VOICE&&VOICE.has(vkey(t)));
+const hasRec=t=>VOICE?VOICE.has(vkey(t)):true; // until the list arrives, assume a recording exists and try it
+function preVoice(list){if(!voiceOn)return;list.forEach(t=>{if(hasRec(t))vbuf(vkey(t)).catch(()=>{})})}
 function speak(text,rag){ // resolves when done (or after an estimated reading time)
   const tok=++speakTok,est=(1100+text.length*70);
   return new Promise(res=>{let fin=false;const end=()=>{if(fin)return;fin=true;rag&&rag.classList.remove('talk');res()};
@@ -84,12 +90,13 @@ function speak(text,rag){ // resolves when done (or after an estimated reading t
       if(voiceOn&&heVoice&&window.speechSynthesis&&FAST()===1){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='he-IL';u.voice=heVoice;u.rate=.92;u.pitch=1.15;
           const t0=Date.now();u.onend=()=>{if(tok!==speakTok)return end();if(Date.now()-t0<400)setTimeout(end,Math.max(0,est-400));else end()};u.onerror=()=>setTimeout(end,est);
           speechSynthesis.speak(u);setTimeout(end,est*2.6);}catch(e){setTimeout(end,est)}}
-      else{setTimeout(end,est/FAST());if(rag)setTimeout(()=>rag.classList.remove('talk'),Math.min(est,2600)/FAST())}};
+      else quiet()};
+    const quiet=()=>{setTimeout(end,est/FAST());if(rag)setTimeout(()=>rag.classList.remove('talk'),Math.min(est,2600)/FAST())};
     if(voiceOn&&FAST()===1&&hasRec(text)){
       try{if(vsrc){vsrc.onended=null;vsrc.stop()}}catch(e){}vsrc=null;try{speechSynthesis.cancel()}catch(e){}
-      vbuf(vkey(text)).then(buf=>{if(tok!==speakTok)return end();const a=ac(),s=a.createBufferSource();s.buffer=buf;s.connect(a.destination);
+      Promise.race([vbuf(vkey(text)),new Promise((_,rej)=>setTimeout(rej,6000))]).then(buf=>{if(tok!==speakTok)return end();sawRec();const a=ac(),s=a.createBufferSource();s.buffer=buf;s.connect(a.destination);
           s.onended=()=>{if(vsrc===s)vsrc=null;end()};vsrc=s;s.start();window.__voicePlays=(window.__voicePlays||0)+1;setTimeout(end,buf.duration*1000+1500)})
-        .catch(device)}
+        .catch(()=>{if(tok!==speakTok)return end();recSeen?quiet():device()})}
     else device();
   })}
 function hush(){speakTok++;try{speechSynthesis.cancel()}catch(e){}try{if(vsrc){vsrc.onended=null;vsrc.stop()}}catch(e){}vsrc=null;document.querySelectorAll('.raglon').forEach(r=>r.classList.remove('talk'))}
